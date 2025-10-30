@@ -4,8 +4,8 @@ const MODEL = "gemini-2.5-flash-image";
 
 type ReqBody = {
   prompt?: string;
-  image?: string | null;            // huidige scène of laatst gegenereerde
-  productImages?: string[];         // max 2
+  image?: string | null;            // scene of laatste edit (data URL)
+  productImages?: string[];         // extra afbeeldingen, bv. behang of tafels
   sceneSize?: { width: number; height: number } | null;
 };
 
@@ -17,17 +17,24 @@ function parseDataUrl(dataUrl: string) {
 
 export async function POST(req: Request) {
   try {
-    const { prompt, image, productImages = [], sceneSize }: ReqBody = await req.json();
+    const {
+      prompt,
+      image,
+      productImages = [],
+      sceneSize,
+    }: ReqBody = await req.json();
 
     const key = process.env.GEMINI_API_KEY;
     if (!key) {
-      return NextResponse.json({ error: "GEMINI_API_KEY ontbreekt" }, { status: 500 });
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY ontbreekt" },
+        { status: 500 }
+      );
     }
 
-    // we sturen max 1 scene + max 2 producten
     const parts: any[] = [];
 
-    // 1. scene (verplicht)
+    // 1. SCENE ALTIJD EERST
     if (image) {
       const parsed = parseDataUrl(image);
       if (parsed) {
@@ -40,7 +47,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. producten (optioneel, max 2, en alleen als ze echt bestaan)
+    // 2. PRODUCTEN DAARNA (MAX 2)
     const cleanProducts = productImages.filter(Boolean).slice(0, 2);
     for (const p of cleanProducts) {
       const parsed = parseDataUrl(p);
@@ -54,15 +61,19 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. instructie altijd onderaan
-    const sizeText = sceneSize ? `Keep the canvas exactly ${sceneSize.width}x${sceneSize.height} pixels. ` : "";
+    // 3. INSTRUCTIE: SCENE LEIDEND
+    const sizeHint = sceneSize
+      ? `Keep the canvas exactly ${sceneSize.width}x${sceneSize.height} pixels. `
+      : "";
     const baseRules =
-      "Keep all existing objects, furniture and decor exactly the same. " +
-      "When applying wallpaper or floor changes, also update cabinet compartments and shelf sections. " +
-      "Do not stretch patterns, use natural repetition. " +
-      "Maintain original camera perspective and image dimensions.";
+      "Use the FIRST image as the base scene. Do not resize, crop or pad the base scene. " +
+      "Only insert or overlay the following images on top of the base scene and match perspective and lighting. " +
+      "Keep all existing objects, furniture, doors and windows exactly the same. " +
+      "When applying patterns or wallpapers, also update cabinet compartments or shelf sections. " +
+      "Do not stretch patterns. Use natural seamless repetition. " +
+      "Preserve the original camera perspective and image dimensions.";
 
-    const finalInstruction = `${prompt || ""} ${sizeText}${baseRules}`.trim();
+    const finalInstruction = `${prompt || ""} ${sizeHint}${baseRules}`.trim();
 
     parts.push({ text: finalInstruction });
 
@@ -81,7 +92,10 @@ export async function POST(req: Request) {
 
     if (!res.ok) {
       console.error("Gemini error:", res.status, json);
-      return NextResponse.json({ error: json?.error?.message || "Gemini API error" }, { status: res.status });
+      return NextResponse.json(
+        { error: json?.error?.message || "Gemini API error" },
+        { status: res.status }
+      );
     }
 
     const outParts = json?.candidates?.[0]?.content?.parts || [];
@@ -89,15 +103,31 @@ export async function POST(req: Request) {
       outParts.find((p: any) => p?.inlineData?.data) ||
       outParts.find((p: any) => p?.inline_data?.data);
 
-    const b64 = imgPart?.inlineData?.data || imgPart?.inline_data?.data;
+    const b64 =
+      imgPart?.inlineData?.data || imgPart?.inline_data?.data || null;
+
     if (!b64) {
-      return NextResponse.json({ error: "No image returned from API" }, { status: 502 });
+      console.error("No image in response:", JSON.stringify(json).slice(0, 2000));
+      return NextResponse.json(
+        { error: "No image returned from API" },
+        { status: 502 }
+      );
     }
 
     const dataUrl = `data:image/png;base64,${b64}`;
-    return NextResponse.json({ image: dataUrl, description: "" }, { status: 200 });
+
+    return NextResponse.json(
+      {
+        image: dataUrl,
+        description: "",
+      },
+      { status: 200 }
+    );
   } catch (e: any) {
     console.error("Route crash:", e);
-    return NextResponse.json({ error: e.message || "Unknown error" }, { status: 500 });
+    return NextResponse.json(
+      { error: e.message || "Unknown error" },
+      { status: 500 }
+    );
   }
 }
