@@ -27,7 +27,7 @@ const handleDownload = () => {
   const time = now.toLocaleTimeString("nl-NL").replaceAll(":", "-"); // bijv. 10-32-15
 
   // Bestandsnaam genereren
-  const fileName = `Whoon-${date}_${time}.png`;
+  const fileName = `Whoon--${date}_${time}.png`;
 
   // Tijdelijk link-element maken en klik simuleren
   const link = document.createElement("a");
