@@ -11,18 +11,19 @@ export default function Home() {
   const [sceneImage, setSceneImage] = useState<string | null>(null);
   const [sceneSize, setSceneSize] = useState<{ width: number; height: number } | null>(null);
 
+  // twee product-uploads, geen URL-velden meer
   const [productImage1, setProductImage1] = useState<string | null>(null);
   const [productImage2, setProductImage2] = useState<string | null>(null);
-
-  const [productUrl1, setProductUrl1] = useState<string>("");
-  const [productUrl2, setProductUrl2] = useState<string>("");
 
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // historie terug
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  // lees scène-afmetingen
   useEffect(() => {
     if (!sceneImage) { setSceneSize(null); return; }
     const img = new Image();
@@ -35,9 +36,10 @@ export default function Home() {
       setLoading(true);
       setError(null);
 
+      // we bewerken altijd de laatste output als die bestaat, anders de originele scène
       const imageToEdit = generatedImage || sceneImage;
+
       const productImages = [productImage1, productImage2].filter(Boolean) as string[];
-      const productUrls = [productUrl1.trim(), productUrl2.trim()].filter(Boolean);
 
       const response = await fetch("/api/image", {
         method: "POST",
@@ -46,7 +48,6 @@ export default function Home() {
           prompt,
           image: imageToEdit,
           productImages,
-          productUrls,
           sceneSize,
           history: history.length > 0 ? history : undefined,
         }),
@@ -62,6 +63,26 @@ export default function Home() {
       if (data.image) {
         setGeneratedImage(data.image);
         setDescription(data.description || null);
+
+        // historie bijhouden: user + model
+        const userMsg: HistoryItem = {
+          role: "user",
+          parts: [
+            { text: prompt },
+            ...(imageToEdit ? [{ image: imageToEdit }] : []),
+            ...productImages.map((pi) => ({ image: pi })),
+          ],
+        };
+
+        const modelMsg: HistoryItem = {
+          role: "model",
+          parts: [
+            ...(data.description ? [{ text: data.description }] : []),
+            { image: data.image },
+          ],
+        };
+
+        setHistory((prev) => [...prev, userMsg, modelMsg]);
       } else {
         setError("No image returned from API");
       }
@@ -77,13 +98,11 @@ export default function Home() {
     setSceneSize(null);
     setProductImage1(null);
     setProductImage2(null);
-    setProductUrl1("");
-    setProductUrl2("");
     setGeneratedImage(null);
     setDescription(null);
     setLoading(false);
     setError(null);
-    setHistory([]);
+    setHistory([]); // hele geschiedenis wissen
   };
 
   const displayImage = generatedImage;
@@ -109,7 +128,7 @@ export default function Home() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-sm font-semibold mb-2">Scene-afbeelding</h3>
+                  <h3 className="text-sm font-semibold mb-2">Scène-afbeelding</h3>
                   <ImageUpload onImageSelect={setSceneImage} currentImage={sceneImage} />
                   {sceneSize && (
                     <p className="text-xs text-muted-foreground mt-2">
@@ -117,36 +136,16 @@ export default function Home() {
                     </p>
                   )}
                 </div>
+
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Product-afbeelding 1</h3>
                     <ImageUpload onImageSelect={setProductImage1} currentImage={productImage1} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold mb-2">Product-afbeelding 2</h3>
+                    <h3 className="text-sm font-semibold mb-2">Product-afbeelding 2 (optioneel)</h3>
                     <ImageUpload onImageSelect={setProductImage2} currentImage={productImage2} />
                   </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-semibold">Product URL 1</label>
-                  <input
-                    className="w-full mt-1 px-3 py-2 border rounded-md text-sm bg-background"
-                    placeholder="https://...png of .jpg"
-                    value={productUrl1}
-                    onChange={(e) => setProductUrl1(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold">Product URL 2</label>
-                  <input
-                    className="w-full mt-1 px-3 py-2 border rounded-md text-sm bg-background"
-                    placeholder="https://...png of .jpg"
-                    value={productUrl2}
-                    onChange={(e) => setProductUrl2(e.target.value)}
-                  />
                 </div>
               </div>
 
@@ -172,7 +171,7 @@ export default function Home() {
                 imageUrl={displayImage || ""}
                 description={description}
                 onReset={handleReset}
-                conversationHistory={history}
+                conversationHistory={history}  // geschiedenis tonen
               />
               <ImagePromptInput
                 onSubmit={handlePromptSubmit}

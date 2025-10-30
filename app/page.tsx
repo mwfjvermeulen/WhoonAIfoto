@@ -113,7 +113,7 @@ export default function Home() {
         <CardHeader className="flex flex-col items-center justify-center space-y-2">
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Wand2 className="w-8 h-8 text-primary" />
-            Producten toevoegen op een scène, scène-grootte leidend
+            Whoon AI Photo Meister
           </CardTitle>
         </CardHeader>
 
