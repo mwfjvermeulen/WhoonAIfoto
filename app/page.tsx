@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { ImagePromptInput } from "@/components/ImagePromptInput";
@@ -11,7 +12,6 @@ export default function Home() {
   const [sceneImage, setSceneImage] = useState<string | null>(null);
   const [sceneSize, setSceneSize] = useState<{ width: number; height: number } | null>(null);
 
-  // twee product-uploads, geen URL-velden meer
   const [productImage1, setProductImage1] = useState<string | null>(null);
   const [productImage2, setProductImage2] = useState<string | null>(null);
 
@@ -20,12 +20,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // historie terug
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // lees scène-afmetingen
+  // scène-afmetingen bepalen
   useEffect(() => {
-    if (!sceneImage) { setSceneSize(null); return; }
+    if (!sceneImage) {
+      setSceneSize(null);
+      return;
+    }
     const img = new Image();
     img.onload = () => setSceneSize({ width: img.width, height: img.height });
     img.src = sceneImage;
@@ -36,9 +38,8 @@ export default function Home() {
       setLoading(true);
       setError(null);
 
-      // we bewerken altijd de laatste output als die bestaat, anders de originele scène
+      // bewerk altijd de laatste output als die er is, anders de oorspronkelijke scène
       const imageToEdit = generatedImage || sceneImage;
-
       const productImages = [productImage1, productImage2].filter(Boolean) as string[];
 
       const response = await fetch("/api/image", {
@@ -49,7 +50,7 @@ export default function Home() {
           image: imageToEdit,
           productImages,
           sceneSize,
-          history: history.length > 0 ? history : undefined,
+          // history NIET meesturen, alleen lokaal bewaren
         }),
       });
 
@@ -60,11 +61,12 @@ export default function Home() {
       }
 
       const data = await response.json();
+
       if (data.image) {
         setGeneratedImage(data.image);
         setDescription(data.description || null);
 
-        // historie bijhouden: user + model
+        // history lokaal bijhouden
         const userMsg: HistoryItem = {
           role: "user",
           parts: [
@@ -102,7 +104,7 @@ export default function Home() {
     setDescription(null);
     setLoading(false);
     setError(null);
-    setHistory([]); // hele geschiedenis wissen
+    setHistory([]);
   };
 
   const displayImage = generatedImage;
@@ -113,7 +115,7 @@ export default function Home() {
         <CardHeader className="flex flex-col items-center justify-center space-y-2">
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Wand2 className="w-8 h-8 text-primary" />
-            Whoon AI Photo Meister
+            Producten toevoegen op een scène, scène-grootte leidend
           </CardTitle>
         </CardHeader>
 
@@ -171,7 +173,7 @@ export default function Home() {
                 imageUrl={displayImage || ""}
                 description={description}
                 onReset={handleReset}
-                conversationHistory={history}  // geschiedenis tonen
+                conversationHistory={history}
               />
               <ImagePromptInput
                 onSubmit={handlePromptSubmit}
