@@ -15,8 +15,8 @@ export function ImagePromptInput({ onSubmit, isEditing, isLoading }: Props) {
   const baseRules = [
     "Keep all existing objects, furniture, windows, doors, and decor exactly the same.",
     "When applying patterns, also update cabinet compartments and shelf sections so they match.",
-    "Do not stretch patterns. Use seamless/natural repetition so proportions stay correct.",
-    "Maintain the original camera perspective and image dimensions.",
+    "Do not stretch patterns only repeat so proportions stay correct.",
+    "Maintain the original camera perspective and image dimensions of the Scène-afbeelding.",
   ].join(" ");
 
   // Hoofdonderwerp + subopties
@@ -24,8 +24,15 @@ export function ImagePromptInput({ onSubmit, isEditing, isLoading }: Props) {
     {
       label: "Muur • Pas behang toe op volledige muur",
       text:
-        "Apply the wallpaper pattern from Product Image 1 onto the wall. Use the same texture, color, and pattern, and extend or repeat it so the entire wall is covered.",
+        "Apply the wallpaper pattern from Product Image 1 onto the wall. Use the same texture, color, and pattern, and repeat it so the entire wall is covered.",
     },
+
+    {
+      label: "Muur • Pas de muurkleur aan naar kleurcode X",
+      text:
+        "Apply the collor with hex code XXXXXX  onto the wall so the entire wall is covered.",
+    },
+
     {
       label: "Muur • Pas behang toe op achterzijde muur",
       text:
@@ -44,7 +51,7 @@ export function ImagePromptInput({ onSubmit, isEditing, isLoading }: Props) {
     {
       label: "Vloer • Verander de vloerkleur",
       text:
-        "Change the floor color to the specified color, keeping material, texture, reflections and lighting identical.",
+        "Change the floor color to the specified color XXXXXXXX, keeping material, texture, reflections and lighting identical.",
     },
     {
       label: "Vloer • Pas visgraatvloer toe",
