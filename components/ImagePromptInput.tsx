@@ -31,8 +31,8 @@ export function ImagePromptInput({
       <div className="space-y-2">
         <p className="text-sm font-medium text-foreground">
           {isEditing
-            ? "Describe how you want to edit the image"
-            : "Describe the image you want to generate"}
+            ? "Wil je nog wat meer veranderen?"
+            : "Geef hier aan wat je wilt veranderen aan de afbeelding"}
         </p>
       </div>
 
@@ -41,8 +41,8 @@ export function ImagePromptInput({
         className="border-secondary"
         placeholder={
           isEditing
-            ? "Example: Make the background blue and add a rainbow..."
-            : "Example: A 3D rendered image of a pig with wings and a top hat flying over a futuristic city..."
+            ? "Bijvoorbeeld, ik wil de klasten tegen de muur verwijdert hebben. "
+            : "Bijvoorbeeld; ik wil de muren op de afbeelding groen hebben en dat er een wit tapijt ligt."
         }
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
@@ -54,7 +54,7 @@ export function ImagePromptInput({
         className="w-full bg-primary hover:bg-primary/90"
       >
         <Wand2 className="w-4 h-4 mr-2" />
-        {isEditing ? "Edit Image" : "Generate Image"}
+        {isEditing ? "Genereer foto" : "Genereer foto"}
       </Button>
     </form>
   );

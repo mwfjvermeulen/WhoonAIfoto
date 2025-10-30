@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { ImagePromptInput } from "@/components/ImagePromptInput";
 import { ImageResultDisplay } from "@/components/ImageResultDisplay";
@@ -8,97 +8,103 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HistoryItem } from "@/lib/types";
 
 export default function Home() {
-  const [image, setImage] = useState<string | null>(null);
+  const [sceneImage, setSceneImage] = useState<string | null>(null);
+  const [sceneSize, setSceneSize] = useState<{ width: number; height: number } | null>(null);
+
+  // twee product-uploads, geen URL-velden meer
+  const [productImage1, setProductImage1] = useState<string | null>(null);
+  const [productImage2, setProductImage2] = useState<string | null>(null);
+
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // historie terug
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  const handleImageSelect = (imageData: string) => {
-    setImage(imageData || null);
-  };
+  // lees scène-afmetingen
+  useEffect(() => {
+    if (!sceneImage) { setSceneSize(null); return; }
+    const img = new Image();
+    img.onload = () => setSceneSize({ width: img.width, height: img.height });
+    img.src = sceneImage;
+  }, [sceneImage]);
 
   const handlePromptSubmit = async (prompt: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      // If we have a generated image, use that for editing, otherwise use the uploaded image
-      const imageToEdit = generatedImage || image;
+      // we bewerken altijd de laatste output als die bestaat, anders de originele scène
+      const imageToEdit = generatedImage || sceneImage;
 
-      // Prepare the request data as JSON
-      const requestData = {
-        prompt,
-        image: imageToEdit,
-        history: history.length > 0 ? history : undefined,
-      };
+      const productImages = [productImage1, productImage2].filter(Boolean) as string[];
 
       const response = await fetch("/api/image", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          image: imageToEdit,
+          productImages,
+          sceneSize,
+          history: history.length > 0 ? history : undefined,
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate image");
+        const errText = await response.text();
+        console.error("Gemini API error:", errText);
+        throw new Error("Gemini API error");
       }
 
       const data = await response.json();
-
       if (data.image) {
-        // Update the generated image and description
         setGeneratedImage(data.image);
         setDescription(data.description || null);
 
-        // Update history locally - add user message
-        const userMessage: HistoryItem = {
+        // historie bijhouden: user + model
+        const userMsg: HistoryItem = {
           role: "user",
           parts: [
             { text: prompt },
             ...(imageToEdit ? [{ image: imageToEdit }] : []),
+            ...productImages.map((pi) => ({ image: pi })),
           ],
         };
 
-        // Add AI response
-        const aiResponse: HistoryItem = {
+        const modelMsg: HistoryItem = {
           role: "model",
           parts: [
             ...(data.description ? [{ text: data.description }] : []),
-            ...(data.image ? [{ image: data.image }] : []),
+            { image: data.image },
           ],
         };
 
-        // Update history with both messages
-        setHistory((prevHistory) => [...prevHistory, userMessage, aiResponse]);
+        setHistory((prev) => [...prev, userMsg, modelMsg]);
       } else {
         setError("No image returned from API");
       }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
-      console.error("Error processing request:", error);
+    } catch (err: any) {
+      setError(err.message || "Error");
     } finally {
       setLoading(false);
     }
   };
 
   const handleReset = () => {
-    setImage(null);
+    setSceneImage(null);
+    setSceneSize(null);
+    setProductImage1(null);
+    setProductImage2(null);
     setGeneratedImage(null);
     setDescription(null);
     setLoading(false);
     setError(null);
-    setHistory([]);
+    setHistory([]); // hele geschiedenis wissen
   };
 
-  // If we have a generated image, we want to edit it next time
-  const currentImage = generatedImage || image;
-  const isEditing = !!currentImage;
-
-  // Get the latest image to display (always the generated image)
   const displayImage = generatedImage;
 
   return (
@@ -107,12 +113,10 @@ export default function Home() {
         <CardHeader className="flex flex-col items-center justify-center space-y-2">
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Wand2 className="w-8 h-8 text-primary" />
-            Image Creation & Editing
+            Producten toevoegen op een scène, scène-grootte leidend
           </CardTitle>
-          <span className="text-sm font-mono text-muted-foreground">
-            powered by Google DeepMind Gemini 2.0 Flash
-          </span>
         </CardHeader>
+
         <CardContent className="space-y-6 pt-6 w-full">
           {error && (
             <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
@@ -122,13 +126,32 @@ export default function Home() {
 
           {!displayImage && !loading ? (
             <>
-              <ImageUpload
-                onImageSelect={handleImageSelect}
-                currentImage={currentImage}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Scène-afbeelding</h3>
+                  <ImageUpload onImageSelect={setSceneImage} currentImage={sceneImage} />
+                  {sceneSize && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {sceneSize.width} × {sceneSize.height}px
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Product-afbeelding 1</h3>
+                    <ImageUpload onImageSelect={setProductImage1} currentImage={productImage1} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Product-afbeelding 2 (optioneel)</h3>
+                    <ImageUpload onImageSelect={setProductImage2} currentImage={productImage2} />
+                  </div>
+                </div>
+              </div>
+
               <ImagePromptInput
                 onSubmit={handlePromptSubmit}
-                isEditing={isEditing}
+                isEditing={!!sceneImage}
                 isLoading={loading}
               />
             </>
@@ -148,7 +171,7 @@ export default function Home() {
                 imageUrl={displayImage || ""}
                 description={description}
                 onReset={handleReset}
-                conversationHistory={history}
+                conversationHistory={history}  // geschiedenis tonen
               />
               <ImagePromptInput
                 onSubmit={handlePromptSubmit}

@@ -56,7 +56,7 @@ export function ImageUpload({ onImageSelect, currentImage, onError }: ImageUploa
         setIsLoading(false);
       };
       reader.onerror = (error) => {
-        onError?.("Error reading file. Please try again.");
+        onError?.("FOUT er gaat wa mis, wat? weet ik niet!");
         setIsLoading(false);
       };
       reader.readAsDataURL(file);
@@ -97,10 +97,10 @@ export function ImageUpload({ onImageSelect, currentImage, onError }: ImageUploa
             <UploadIcon className="w-8 h-8 text-primary mr-3 flex-shrink-0" aria-hidden="true" />
             <div className="">
               <p className="text-sm font-medium text-foreground">
-                Drop your image here or click to browse
+                Drop hier de foto die je wilt aanpassen.
               </p>
               <p className="text-xs text-muted-foreground">
-                Maximum file size: 10MB
+                Maximale upload grootte: 10MB
               </p>
             </div>
           </div>
