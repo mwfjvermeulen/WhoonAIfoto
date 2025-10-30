@@ -22,6 +22,27 @@ export default function Home() {
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
 
+  async function forceToSceneSize(dataUrl: string, sceneSize?: { width: number; height: number } | null) {
+  if (!sceneSize) return dataUrl;
+  return new Promise<string>((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = sceneSize.width;
+      canvas.height = sceneSize.height;
+      const ctx = canvas.getContext("2d")!;
+      // vul canvas wit of transparant
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // teken AI-image passend in het canvas
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.src = dataUrl;
+  });
+}
+
+
   // scène-afmetingen bepalen
   useEffect(() => {
     if (!sceneImage) {
