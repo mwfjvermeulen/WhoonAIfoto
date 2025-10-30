@@ -20,15 +20,23 @@ export function ImageResultDisplay({
 }: ImageResultDisplayProps) {
   const [showHistory, setShowHistory] = useState(false);
 
-  const handleDownload = () => {
-    // Create a temporary link element
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.download = `gemini-image-${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+const handleDownload = () => {
+  // Datum en tijd samenstellen
+  const now = new Date();
+  const date = now.toLocaleDateString("nl-NL").replaceAll("/", "-"); // bijv. 30-10-2025
+  const time = now.toLocaleTimeString("nl-NL").replaceAll(":", "-"); // bijv. 10-32-15
+
+  // Bestandsnaam genereren
+  const fileName = `Whoon-${date}_${time}.png`;
+
+  // Tijdelijk link-element maken en klik simuleren
+  const link = document.createElement("a");
+  link.href = imageUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
   const toggleHistory = () => {
     setShowHistory(!showHistory);
