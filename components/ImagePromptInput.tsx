@@ -11,36 +11,70 @@ interface Props {
 export function ImagePromptInput({ onSubmit, isEditing, isLoading }: Props) {
   const [prompt, setPrompt] = useState("");
 
-  // Standaard prompt-opties
+  // Deze regels moeten altijd mee
+  const baseRules = [
+    "Keep all existing objects, furniture, windows, doors, and decor exactly the same.",
+    "When applying patterns, also update cabinet compartments and shelf sections so they match.",
+    "Do not stretch patterns. Use seamless/natural repetition so proportions stay correct.",
+    "Maintain the original camera perspective and image dimensions.",
+  ].join(" ");
+
+  // Hoofdonderwerp + subopties
   const presets = [
     {
-      label: "Pas behang toe",
-      text: `Apply the wallpaper pattern from Product Image 1 onto the wall. Use the same texture, color, and pattern, and extend or repeat it so the entire wall is covered. Keep all other objects, lighting, and proportions exactly the same. Maintain the original perspective and image dimensions.`,
+      label: "Muur • Pas behang toe op volledige muur",
+      text:
+        "Apply the wallpaper pattern from Product Image 1 onto the wall. Use the same texture, color, and pattern, and extend or repeat it so the entire wall is covered.",
     },
     {
-      label: "Wijzig vloerkleed",
-      text: `Replace the current rug with the pattern and color from Product Image 1. Match lighting and shadows naturally. Keep all other elements identical and preserve the original camera perspective and dimensions.`,
+      label: "Muur • Pas behang toe op achterzijde muur",
+      text:
+        "Apply the wallpaper pattern from Product Image 1 onto the back wall only. Match lighting, colors, and perspective while keeping all other objects unchanged.",
     },
     {
-      label: "Verander tafeldecoratie",
-      text: `Replace the table decoration with the items shown in Product Image 2, keeping the lighting, color tone, and perspective consistent.`,
+      label: "Vloer • Voeg exact het tapijt toe (Product Image 1)",
+      text:
+        "Add the rug from Product Image 1 onto the floor, matching the perspective, lighting, and scale of the room.",
+    },
+    {
+      label: "Vloer • Vervang tapijt met Product Image 1",
+      text:
+        "Replace the current rug with the rug from Product Image 1, ensuring lighting, shadows, and scale remain realistic.",
+    },
+    {
+      label: "Vloer • Verander de vloerkleur",
+      text:
+        "Change the floor color to the specified color, keeping material, texture, reflections and lighting identical.",
+    },
+    {
+      label: "Vloer • Pas visgraatvloer toe",
+      text:
+        "Replace the current floor with a natural wood herringbone pattern. Keep lighting and reflections realistic and preserve the room’s dimensions and perspective.",
     },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim()) onSubmit(prompt.trim());
+    const finalPrompt = prompt.trim();
+    if (!finalPrompt) return;
+    // baseRules altijd meesturen
+    onSubmit(`${finalPrompt}\n\n${baseRules}`);
+  };
+
+  const handlePresetClick = (text: string) => {
+    // bij klikken meteen de volledige prompt invullen inclusief vaste regels
+    const full = `${text}\n\n${baseRules}`;
+    setPrompt(full);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full">
-      {/* Suggestieknoppen */}
-      <div className="flex flex-wrap gap-2 mb-2">
+      <div className="flex flex-wrap gap-2">
         {presets.map((p) => (
           <button
             key={p.label}
             type="button"
-            onClick={() => setPrompt(p.text)}
+            onClick={() => handlePresetClick(p.text)}
             className="text-xs border px-2 py-1 rounded-md hover:bg-accent"
           >
             {p.label}
@@ -51,11 +85,11 @@ export function ImagePromptInput({ onSubmit, isEditing, isLoading }: Props) {
       <div>
         <textarea
           id="prompt"
-          className="w-full min-h-[100px] p-3 border rounded-md text-sm"
+          className="w-full min-h-[110px] p-3 border rounded-md text-sm"
           placeholder={
             isEditing
-              ? "Beschrijf wat je wilt wijzigen in de afbeelding..."
-              : "Bijvoorbeeld: ik wil de muren op de afbeelding groen hebben..."
+              ? "Beschrijf wat je wilt wijzigen in de afbeelding."
+              : "Bijvoorbeeld: pas behang toe op de achterwand."
           }
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -65,7 +99,7 @@ export function ImagePromptInput({ onSubmit, isEditing, isLoading }: Props) {
       <button
         type="submit"
         disabled={isLoading}
-        className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground disabled:opacity-50"
       >
         {isLoading ? "Verwerken..." : "Uitvoeren"}
       </button>
